@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// 1. MASUKKAN CONFIG FIREBASE ANDA DI SINI (Ini aman ditaruh di GitHub Pages)
+// 1. MASUKKAN CONFIG FIREBASE ANDA DI SINI
 const firebaseConfig = {
     apiKey: "AIzaSyC8V6_Rj5xsM8fPDL04FMORkrdygL2yV2o",
     authDomain: "wms-helper-5c6ca.firebaseapp.com",
@@ -25,7 +25,23 @@ const filterDate = document.getElementById('filterDate');
 const filterStatus = document.getElementById('filterStatus');
 const filterDest = document.getElementById('filterDest');
 
-// 2. REAL-TIME LISTENER DARI FIREBASE
+// 2. FUNGSI GLOBAL UNTUK COPY TEXT (Click-to-Copy)
+window.copyToClipboard = function(text, elementId) {
+    navigator.clipboard.writeText(text).then(() => {
+        const el = document.getElementById(elementId);
+        const originalText = el.innerHTML;
+        
+        // Ubah tampilan sementara menjadi "Tersalin!"
+        el.innerHTML = `<i class="fa-solid fa-check text-success"></i> <span class="text-success">Tersalin!</span>`;
+        
+        // Kembalikan ke teks asli setelah 1.5 detik
+        setTimeout(() => {
+            el.innerHTML = originalText;
+        }, 1500);
+    }).catch(err => console.error('Gagal menyalin teks: ', err));
+};
+
+// 3. REAL-TIME LISTENER DARI FIREBASE
 onSnapshot(collection(db, "picking_list"), (snapshot) => {
     rawData = [];
     const uniqueDestinations = new Set();
@@ -39,11 +55,11 @@ onSnapshot(collection(db, "picking_list"), (snapshot) => {
     // Update opsi dropdown Destination secara dinamis
     updateDestDropdown(uniqueDestinations);
     
-    // Render tampilan
+    // Render tampilan setiap ada perubahan data
     renderData();
 });
 
-// 3. FUNGSI RENDER & FILTER (Tanpa Refresh)
+// 4. FUNGSI RENDER, FILTER & SORTING (Tanpa Refresh)
 function renderData() {
     const searchVal = searchInput.value.toLowerCase();
     const dateVal = filterDate.value; // format YYYY-MM-DD
@@ -52,8 +68,8 @@ function renderData() {
 
     dataContainer.innerHTML = ''; // Bersihkan container
 
-    // Terapkan Filter & Search
-    const filteredData = rawData.filter(item => {
+    // A. FILTERING (Mencakup Search PL & Tujuan)
+    let filteredData = rawData.filter(item => {
         // Konversi format tanggal (WMS: DD/MM/YYYY) ke (Input: YYYY-MM-DD)
         let itemDateFormatted = "";
         if (item.picking_date) {
@@ -61,7 +77,11 @@ function renderData() {
             if(parts.length === 3) itemDateFormatted = `${parts[2]}-${parts[1]}-${parts[0]}`;
         }
 
-        const matchSearch = item.picking_doc.toLowerCase().includes(searchVal);
+        // Search mengecek ke No PL ATAU Destination
+        const plString = item.picking_doc ? item.picking_doc.toLowerCase() : "";
+        const destString = item.destination ? item.destination.toLowerCase() : "";
+        const matchSearch = plString.includes(searchVal) || destString.includes(searchVal);
+        
         const matchDate = dateVal === "" || itemDateFormatted === dateVal;
         const matchStatus = statusVal === "" || item.status.includes(statusVal);
         const matchDest = destVal === "" || item.destination === destVal;
@@ -69,13 +89,37 @@ function renderData() {
         return matchSearch && matchDate && matchStatus && matchDest;
     });
 
+    // B. SORTING (Tanggal Terbaru di Atas)
+    filteredData.sort((a, b) => {
+        // Ubah DD/MM/YYYY menjadi angka YYYYMMDD untuk dibandingkan
+        let dateA = 0, dateB = 0;
+        if (a.picking_date) {
+            const pA = a.picking_date.split('/');
+            if (pA.length === 3) dateA = parseInt(`${pA[2]}${pA[1]}${pA[0]}`);
+        }
+        if (b.picking_date) {
+            const pB = b.picking_date.split('/');
+            if (pB.length === 3) dateB = parseInt(`${pB[2]}${pB[1]}${pB[0]}`);
+        }
+        
+        // Jika tanggalnya sama, urutkan berdasarkan No PL (yang lebih besar/baru di atas)
+        if (dateA === dateB) {
+            const plA = a.picking_doc || "";
+            const plB = b.picking_doc || "";
+            return plB.localeCompare(plA);
+        }
+        
+        return dateB - dateA; // Descending (Terbaru di atas)
+    });
+
+    // C. Handle jika data kosong
     if (filteredData.length === 0) {
         dataContainer.innerHTML = `<div class="text-center mt-4 text-muted">Data tidak ditemukan.</div>`;
         return;
     }
 
-    // Buat Kartu (Cards) untuk setiap data
-    filteredData.forEach(item => {
+    // D. RENDERING CARDS
+    filteredData.forEach((item, index) => {
         // Tentukan Icon & Warna berdasarkan status
         let iconHtml = '<i class="fa-solid fa-spinner fa-spin text-warning icon-status"></i>';
         let cardClass = 'card-pl';
@@ -85,6 +129,8 @@ function renderData() {
             cardClass += ' status-complete';
         }
 
+        const uniqueId = `copy-text-${index}`; // ID Unik untuk animasi copy
+
         // Susun HTML Kartu
         const card = document.createElement('div');
         card.className = 'col-12';
@@ -92,10 +138,14 @@ function renderData() {
             <div class="card ${cardClass} shadow-sm">
                 <div class="card-body p-2 d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="fw-bold text-dark">${item.picking_doc}</div>
+                        <div class="fw-bold text-primary mb-1" style="cursor: pointer; font-size: 15px;" 
+                             onclick="copyToClipboard('${item.picking_doc}', '${uniqueId}')"
+                             id="${uniqueId}">
+                            <i class="fa-regular fa-copy"></i> ${item.picking_doc}
+                        </div>
                         <div class="text-muted" style="font-size: 12px;">
                             <i class="fa-regular fa-calendar-days"></i> ${item.picking_date} | 
-                            <i class="fa-solid fa-location-dot"></i> ${item.destination.substring(0, 15)}...
+                            <i class="fa-solid fa-location-dot"></i> ${item.destination.substring(0, 18)}...
                         </div>
                     </div>
                     <div class="text-end">
@@ -109,19 +159,22 @@ function renderData() {
     });
 }
 
+// 5. FUNGSI UPDATE DROPDOWN DESTINASI
 function updateDestDropdown(destSet) {
     const currentVal = filterDest.value;
     filterDest.innerHTML = '<option value="">Semua Tujuan</option>';
-    destSet.forEach(dest => {
+    
+    // Sort tujuan secara alfabetis agar rapi
+    Array.from(destSet).sort().forEach(dest => {
         const option = document.createElement('option');
         option.value = dest;
-        option.textContent = dest.substring(0, 20) + (dest.length > 20 ? '...' : ''); // Persingkat teks
+        option.textContent = dest.substring(0, 25) + (dest.length > 25 ? '...' : ''); // Persingkat teks jika kepanjangan
         filterDest.appendChild(option);
     });
-    filterDest.value = currentVal; // Kembalikan pilihan sebelumnya
+    filterDest.value = currentVal; // Kembalikan pilihan sebelumnya jika ada
 }
 
-// 4. EVENT LISTENER UNTUK SEARCH & FILTER (Memicu renderData saat diketik/diubah)
+// 6. EVENT LISTENER UNTUK SEARCH & FILTER (Memicu renderData saat diketik/diubah)
 searchInput.addEventListener('input', renderData);
 filterDate.addEventListener('change', renderData);
 filterStatus.addEventListener('change', renderData);
