@@ -1,0 +1,13 @@
+body {
+    font-size: 14px; /* Ukuran font nyaman di HP */
+}
+.card-pl {
+    border-left: 4px solid #0d6efd;
+    transition: 0.2s;
+}
+.card-pl.status-complete {
+    border-left-color: #198754; /* Hijau jika complete */
+}
+.icon-status {
+    font-size: 1.2rem;
+}
