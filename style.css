@@ -128,7 +128,12 @@ body {
     .text-pl {
         font-size: 0.9rem;
     }
-    .badge-status {
-        font-size: 0.6rem;
-    }
+.badge-status {
+    max-width: 80px; /* Batasi lebar maksimal badge */
+    white-space: nowrap; /* Jangan biarkan teks pindah baris */
+    overflow: hidden; /* Sembunyikan teks yang lewat batas */
+    text-overflow: ellipsis; /* Tambahkan titik-titik (...) */
+    vertical-align: middle;
+    display: inline-block;
+}
 }

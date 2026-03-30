@@ -25,15 +25,15 @@ const filterStatus = document.getElementById('filterStatus');
 const filterDest = document.getElementById('filterDest');
 
 // 2. FUNGSI COPY TO CLIPBOARD
-window.copyToClipboard = function(text, elementId) {
+window.copyToClipboard = function (text, elementId) {
     navigator.clipboard.writeText(text).then(() => {
         const el = document.getElementById(elementId);
         const originalHTML = el.innerHTML;
-        
+
         // Feedback visual saat berhasil menyalin
         el.innerHTML = `<i class="fa-solid fa-check text-success"></i>`;
         el.classList.add('bg-success-subtle');
-        
+
         setTimeout(() => {
             el.innerHTML = originalHTML;
             el.classList.remove('bg-success-subtle');
@@ -78,11 +78,11 @@ function renderData() {
         let itemDateIso = "";
         if (item.picking_date) {
             const p = item.picking_date.split('/');
-            if(p.length === 3) itemDateIso = `${p[2]}-${p[1]}-${p[0]}`;
+            if (p.length === 3) itemDateIso = `${p[2]}-${p[1]}-${p[0]}`;
         }
 
-        const matchSearch = (item.picking_doc || "").toLowerCase().includes(searchVal) || 
-                            (item.destination || "").toLowerCase().includes(searchVal);
+        const matchSearch = (item.picking_doc || "").toLowerCase().includes(searchVal) ||
+            (item.destination || "").toLowerCase().includes(searchVal);
         const matchDate = dateVal === "" || itemDateIso === dateVal;
         const matchStatus = statusVal === "" || (item.status || "").toLowerCase().includes(statusVal);
         const matchDest = destVal === "" || item.destination === destVal;
@@ -99,7 +99,7 @@ function renderData() {
         };
         const dateA = parseDate(a.picking_date);
         const dateB = parseDate(b.picking_date);
-        
+
         return dateB - dateA || (b.picking_doc || "").localeCompare(a.picking_doc || "");
     });
 
@@ -113,6 +113,15 @@ function renderData() {
         const statusLower = (item.status || "").toLowerCase();
         const config = STATUS_CONFIG[statusLower] || { class: '', badge: 'bg-secondary', icon: 'fa-question' };
         const copyId = `btn-copy-${index}`;
+        const shortStatus = (status) => {
+            const s = status.toLowerCase();
+            if (s.includes('waiting')) return 'WAITING';
+            if (s.includes('complete')) return 'DONE';
+            if (s.includes('progress')) return 'PROG';
+            return status.toUpperCase();
+        };
+        // Di dalam loop renderData:
+const displayStatus = shortStatus(item.status || "");
 
         const card = document.createElement('div');
         card.className = 'col-12 mb-2';
@@ -137,7 +146,7 @@ function renderData() {
                         </div>
                         <div class="text-end">
                             <span class="badge ${config.badge} badge-status">
-                                <i class="fa-solid ${config.icon} me-1"></i> ${item.status}
+                                <i class="fa-solid ${config.icon} me-1"></i> ${displayStatus}
                             </span>
                         </div>
                     </div>
@@ -152,7 +161,7 @@ function renderData() {
 function updateDestDropdown(destSet) {
     const current = filterDest.value;
     filterDest.innerHTML = '<option value="">Semua Tujuan</option>';
-    
+
     Array.from(destSet).sort().forEach(dest => {
         const opt = document.createElement('option');
         opt.value = dest;
