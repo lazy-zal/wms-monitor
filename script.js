@@ -144,12 +144,11 @@ function renderData() {
                             <i class="fa-regular fa-copy"></i> ${item.picking_doc}
                         </div>
                         <div class="text-muted" style="font-size: 12px;">
-                            <i class="fa-regular fa-calendar-days"></i> ${item.picking_date} | 
-                            <i class="fa-solid fa-location-dot"></i> ${item.outbound_doc}
+                            <i class="fa-solid fa-location-crosshairs"></i> ${item.outbound_doc}
                         </div>
                         <div class="text-muted" style="font-size: 12px;">
                             <i class="fa-regular fa-calendar-days"></i> ${item.picking_date} | 
-                            <i class="fa-solid fa-location-dot"></i> ${item.destination.substring(0, 20)}...
+                            <i class="fa-solid fa-location-dot"></i> ${item.destination}
                         </div>
                     </div>
                     <div class="text-end">
