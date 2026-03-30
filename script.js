@@ -2,11 +2,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { firebaseConfig } from "/data.js";
 
-// Inisialisasi Firebase
+// 1. Inisialisasi Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Variabel untuk menyimpan data mentah dari Firebase
+// Variabel Penampung Data
 let rawData = [];
 
 // Elemen DOM
@@ -16,23 +16,31 @@ const filterDate = document.getElementById('filterDate');
 const filterStatus = document.getElementById('filterStatus');
 const filterDest = document.getElementById('filterDest');
 
-// 2. FUNGSI GLOBAL UNTUK COPY TEXT (Click-to-Copy)
+// 2. FUNGSI COPY TO CLIPBOARD
 window.copyToClipboard = function(text, elementId) {
     navigator.clipboard.writeText(text).then(() => {
         const el = document.getElementById(elementId);
-        const originalText = el.innerHTML;
+        const originalHTML = el.innerHTML;
         
-        // Ubah tampilan sementara menjadi "Tersalin!"
-        el.innerHTML = `<i class="fa-solid fa-check text-success"></i> <span class="text-success">Tersalin!</span>`;
+        // Feedback visual saat berhasil menyalin
+        el.innerHTML = `<i class="fa-solid fa-check text-success"></i>`;
+        el.classList.add('bg-success-subtle');
         
-        // Kembalikan ke teks asli setelah 1.5 detik
         setTimeout(() => {
-            el.innerHTML = originalText;
+            el.innerHTML = originalHTML;
+            el.classList.remove('bg-success-subtle');
         }, 1500);
-    }).catch(err => console.error('Gagal menyalin teks: ', err));
+    }).catch(err => console.error('Gagal menyalin:', err));
 };
 
-// 3. REAL-TIME LISTENER DARI FIREBASE
+// 3. MAPPING STATUS (Warna & Icon)
+const STATUS_CONFIG = {
+    'waiting for picking': { class: 'status-waiting', badge: 'bg-warning text-dark', icon: 'fa-clock' },
+    'picking complete': { class: 'status-complete', badge: 'bg-success text-white', icon: 'fa-check-double' },
+    'progress': { class: 'status-progress', badge: 'bg-primary text-white', icon: 'fa-spinner fa-spin-slow' }
+};
+
+// 4. REAL-TIME LISTENER
 onSnapshot(collection(db, "picking_list"), (snapshot) => {
     rawData = [];
     const uniqueDestinations = new Set();
@@ -43,108 +51,87 @@ onSnapshot(collection(db, "picking_list"), (snapshot) => {
         if (item.destination) uniqueDestinations.add(item.destination);
     });
 
-    // Update opsi dropdown Destination secara dinamis
     updateDestDropdown(uniqueDestinations);
-    
-    // Render tampilan setiap ada perubahan data
     renderData();
 });
 
-// 4. FUNGSI RENDER, FILTER & SORTING (Tanpa Refresh)
+// 5. FUNGSI UTAMA RENDER & FILTER
 function renderData() {
     const searchVal = searchInput.value.toLowerCase();
-    const dateVal = filterDate.value; // format YYYY-MM-DD
-    const statusVal = filterStatus.value;
+    const dateVal = filterDate.value;
+    const statusVal = filterStatus.value.toLowerCase();
     const destVal = filterDest.value;
 
-    dataContainer.innerHTML = ''; // Bersihkan container
+    dataContainer.innerHTML = '';
 
-    // A. FILTERING (Mencakup Search PL & Tujuan)
+    // A. Proses Filtering
     let filteredData = rawData.filter(item => {
-        // Konversi format tanggal (WMS: DD/MM/YYYY) ke (Input: YYYY-MM-DD)
-        let itemDateFormatted = "";
+        // Konversi format tanggal DD/MM/YYYY ke YYYY-MM-DD agar cocok dengan input date
+        let itemDateIso = "";
         if (item.picking_date) {
-            const parts = item.picking_date.split('/');
-            if(parts.length === 3) itemDateFormatted = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            const p = item.picking_date.split('/');
+            if(p.length === 3) itemDateIso = `${p[2]}-${p[1]}-${p[0]}`;
         }
 
-        // Search mengecek ke No PL ATAU Destination
-        const plString = item.picking_doc ? item.picking_doc.toLowerCase() : "";
-        const destString = item.destination ? item.destination.toLowerCase() : "";
-        const matchSearch = plString.includes(searchVal) || destString.includes(searchVal);
-        
-        const matchDate = dateVal === "" || itemDateFormatted === dateVal;
-        const matchStatus = statusVal === "" || item.status.includes(statusVal);
+        const matchSearch = (item.picking_doc || "").toLowerCase().includes(searchVal) || 
+                            (item.destination || "").toLowerCase().includes(searchVal);
+        const matchDate = dateVal === "" || itemDateIso === dateVal;
+        const matchStatus = statusVal === "" || (item.status || "").toLowerCase().includes(statusVal);
         const matchDest = destVal === "" || item.destination === destVal;
 
         return matchSearch && matchDate && matchStatus && matchDest;
     });
 
-    // B. SORTING (Tanggal Terbaru di Atas)
+    // B. Sorting (Terbaru di atas)
     filteredData.sort((a, b) => {
-        // Ubah DD/MM/YYYY menjadi angka YYYYMMDD untuk dibandingkan
-        let dateA = 0, dateB = 0;
-        if (a.picking_date) {
-            const pA = a.picking_date.split('/');
-            if (pA.length === 3) dateA = parseInt(`${pA[2]}${pA[1]}${pA[0]}`);
-        }
-        if (b.picking_date) {
-            const pB = b.picking_date.split('/');
-            if (pB.length === 3) dateB = parseInt(`${pB[2]}${pB[1]}${pB[0]}`);
-        }
+        const parseDate = (str) => {
+            if (!str) return 0;
+            const p = str.split('/');
+            return parseInt(`${p[2]}${p[1]}${p[0]}`);
+        };
+        const dateA = parseDate(a.picking_date);
+        const dateB = parseDate(b.picking_date);
         
-        // Jika tanggalnya sama, urutkan berdasarkan No PL (yang lebih besar/baru di atas)
-        if (dateA === dateB) {
-            const plA = a.picking_doc || "";
-            const plB = b.picking_doc || "";
-            return plB.localeCompare(plA);
-        }
-        
-        return dateB - dateA; // Descending (Terbaru di atas)
+        return dateB - dateA || (b.picking_doc || "").localeCompare(a.picking_doc || "");
     });
 
-    // C. Handle jika data kosong
+    // C. Render ke HTML
     if (filteredData.length === 0) {
-        dataContainer.innerHTML = `<div class="text-center mt-4 text-muted">Data tidak ditemukan.</div>`;
+        dataContainer.innerHTML = `<div class="text-center mt-5 text-muted small">Data tidak ditemukan atau filter tidak cocok.</div>`;
         return;
     }
 
-    // D. RENDERING CARDS
     filteredData.forEach((item, index) => {
-        // Tentukan Icon & Warna berdasarkan status
-        let iconHtml = '<i class="fa-solid fa-spinner fa-spin text-warning icon-status"></i>';
-        let cardClass = 'card-pl';
-        
-        if (item.status.toLowerCase().includes("complete")) {
-            iconHtml = '<i class="fa-solid fa-circle-check text-success icon-status"></i>';
-            cardClass += ' status-complete';
-        }
+        const statusLower = (item.status || "").toLowerCase();
+        const config = STATUS_CONFIG[statusLower] || { class: '', badge: 'bg-secondary', icon: 'fa-question' };
+        const copyId = `btn-copy-${index}`;
 
-        const uniqueId = `copy-text-${index}`; // ID Unik untuk animasi copy
-
-        // Susun HTML Kartu
         const card = document.createElement('div');
-        card.className = 'col-12';
+        card.className = 'col-12 mb-2';
         card.innerHTML = `
-            <div class="card ${cardClass} shadow-sm">
-                <div class="card-body p-2 d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="fw-bold text-primary mb-1" style="cursor: pointer; font-size: 15px;" 
-                             onclick="copyToClipboard('${item.picking_doc}', '${uniqueId}')"
-                             id="${uniqueId}">
-                            <i class="fa-regular fa-copy"></i> ${item.picking_doc}
+            <div class="card card-pl ${config.class} shadow-sm">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center mb-1">
+                                <span class="fw-bold text-dark text-pl me-2">${item.picking_doc}</span>
+                                <button class="btn-copy" id="${copyId}" onclick="copyToClipboard('${item.picking_doc}', '${copyId}')">
+                                    <i class="fa-regular fa-copy"></i>
+                                </button>
+                            </div>
+                            <div class="text-muted mb-2" style="font-size: 13px;">
+                                <i class="fa-solid fa-file-invoice me-1"></i> ${item.outbound_doc || '-'}
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 text-muted" style="font-size: 11px;">
+                                <span><i class="fa-regular fa-calendar me-1"></i> ${item.picking_date}</span>
+                                <span><i class="fa-solid fa-location-dot me-1"></i> ${item.destination}</span>
+                            </div>
                         </div>
-                        <div class="text-muted" style="font-size: 12px;">
-                            <i class="fa-solid fa-location-crosshairs"></i> ${item.outbound_doc}
+                        <div class="text-end">
+                            <span class="badge ${config.badge} badge-status">
+                                <i class="fa-solid ${config.icon} me-1"></i> ${item.status}
+                            </span>
                         </div>
-                        <div class="text-muted" style="font-size: 12px;">
-                            <i class="fa-regular fa-calendar-days"></i> ${item.picking_date} | 
-                            <i class="fa-solid fa-location-dot"></i> ${item.destination}
-                        </div>
-                    </div>
-                    <div class="text-end">
-                        ${iconHtml}
-                        <div style="font-size: 10px;" class="text-muted">${item.status}</div>
                     </div>
                 </div>
             </div>
@@ -153,22 +140,21 @@ function renderData() {
     });
 }
 
-// 5. FUNGSI UPDATE DROPDOWN DESTINASI
+// 6. UPDATE DROPDOWN TUJUAN
 function updateDestDropdown(destSet) {
-    const currentVal = filterDest.value;
+    const current = filterDest.value;
     filterDest.innerHTML = '<option value="">Semua Tujuan</option>';
     
-    // Sort tujuan secara alfabetis agar rapi
     Array.from(destSet).sort().forEach(dest => {
-        const option = document.createElement('option');
-        option.value = dest;
-        option.textContent = dest.substring(0, 25) + (dest.length > 25 ? '...' : ''); // Persingkat teks jika kepanjangan
-        filterDest.appendChild(option);
+        const opt = document.createElement('option');
+        opt.value = dest;
+        opt.textContent = dest;
+        filterDest.appendChild(opt);
     });
-    filterDest.value = currentVal; // Kembalikan pilihan sebelumnya jika ada
+    filterDest.value = current;
 }
 
-// 6. EVENT LISTENER UNTUK SEARCH & FILTER (Memicu renderData saat diketik/diubah)
+// 7. EVENT LISTENERS
 searchInput.addEventListener('input', renderData);
 filterDate.addEventListener('change', renderData);
 filterStatus.addEventListener('change', renderData);

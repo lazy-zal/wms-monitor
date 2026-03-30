@@ -1,13 +1,134 @@
-body {
-    font-size: 14px; /* Ukuran font nyaman di HP */
+/* WMS Picking Monitor - Optimized for Mobile
+   Base: Bootstrap 5 + FontAwesome 6
+*/
+
+:root {
+    --primary-color: #0d6efd;
+    --success-color: #198754;
+    --warning-color: #ffc107;
+    --bg-light: #f8f9fa;
+    --card-radius: 12px;
 }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    background-color: var(--bg-light);
+    color: #333;
+    /* Memberikan ruang untuk notch iPhone atau status bar */
+    padding-top: env(safe-area-inset-top);
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* --- Layout Components --- */
+
+/* Header & Filter yang menempel di atas saat scroll */
+.sticky-top-custom {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    background: rgba(248, 249, 250, 0.95);
+    backdrop-filter: blur(10px); /* Efek kaca transparan */
+    padding: 15px;
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 15px;
+}
+
+/* Memperbaiki tampilan input agar lebih modern */
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #ced4da;
+    padding: 0.6rem 0.75rem;
+}
+
+.form-control:focus, .form-select:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+    border-color: var(--primary-color);
+}
+
+/* --- Card Styles --- */
+
 .card-pl {
-    border-left: 4px solid #0d6efd;
+    border: none !important;
+    border-radius: var(--card-radius);
+    border-left: 5px solid var(--primary-color) !important;
+    transition: all 0.2s ease;
+    background: #ffffff;
+}
+
+/* Efek saat kartu ditekan (Mobile Touch Feedback) */
+.card-pl:active {
+    transform: scale(0.97);
+    background-color: #f1f1f1;
+}
+
+/* Warna khusus berdasarkan status */
+.card-pl.status-complete {
+    border-left-color: var(--success-color) !important;
+}
+
+.card-pl.status-waiting {
+    border-left-color: var(--warning-color) !important;
+}
+
+/* Tipografi Khusus No. PL (Monospaced agar angka sejajar) */
+.text-pl {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 1.05rem;
+    letter-spacing: 0.5px;
+}
+
+/* --- UI Elements --- */
+
+.badge-status {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 50px;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+/* Animasi untuk icon loading/progress */
+.fa-spin-slow {
+    animation: fa-spin 2s infinite linear;
+}
+
+/* Custom Scrollbar (Opsional) */
+::-webkit-scrollbar {
+    width: 5px;
+}
+::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}
+
+/* --- Utilities --- */
+
+.shadow-sm {
+    box-shadow: 0 .125rem .25rem rgba(0,0,0,.075)!important;
+}
+
+.btn-copy {
+    border: none;
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 2px 8px;
+    color: #6c757d;
     transition: 0.2s;
 }
-.card-pl.status-complete {
-    border-left-color: #198754; /* Hijau jika complete */
+
+.btn-copy:hover {
+    background: #e9ecef;
+    color: var(--primary-color);
 }
-.icon-status {
-    font-size: 1.2rem;
+
+/* Penyesuaian untuk layar sangat kecil (di bawah 360px) */
+@media (max-width: 360px) {
+    .text-pl {
+        font-size: 0.9rem;
+    }
+    .badge-status {
+        font-size: 0.6rem;
+    }
 }
