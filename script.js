@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-import { firebaseConfig } from "https://lazy-zal.github.io/wms-monitor/";
+import { firebaseConfig } from "/data.js";
 
 // Inisialisasi Firebase
 const app = initializeApp(firebaseConfig);
