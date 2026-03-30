@@ -145,7 +145,7 @@ function renderData() {
                         </div>
                         <div class="text-muted" style="font-size: 12px;">
                             <i class="fa-regular fa-calendar-days"></i> ${item.picking_date} | 
-                            <i class="fa-solid fa-location-dot"></i> ${item.outbound_doc}...
+                            <i class="fa-solid fa-location-dot"></i> ${item.outbound_doc}
                         </div>
                         <div class="text-muted" style="font-size: 12px;">
                             <i class="fa-regular fa-calendar-days"></i> ${item.picking_date} | 
