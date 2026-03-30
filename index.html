@@ -13,14 +13,14 @@
     <div class="sticky-top-custom shadow-sm">
         <div class="container p-0">
             <h4 class="mb-3 text-center fw-bold">
-                <i class="fa-solid fa-boxes-stacked text-primary"></i> Picking Monitor
+                <i class="fa-solid fa-boxes-stacked text-primary"></i> WMS Monitor
             </h4>
 
             <div class="input-group mb-2">
                 <span class="input-group-text bg-white border-end-0">
                     <i class="fa-solid fa-magnifying-glass text-muted"></i>
                 </span>
-                <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="Cari No PL atau Tujuan...">
+                <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="No PL / Tujuan...">
             </div>
             
             <div class="row g-2">
@@ -35,13 +35,13 @@
                         <option value="Complete">Complete</option>
                     </select>
                 </div>
-                <div class="col-2">
+                <div class="col-2 text-end">
                     <button class="btn btn-sm btn-outline-primary w-100" onclick="location.reload()">
                         <i class="fa-solid fa-sync"></i>
                     </button>
                 </div>
-                <div class="col-12 mt-2">
-                    <select id="filterDest" class="form-select form-select-sm">
+                <div class="col-12">
+                    <select id="filterDest" class="form-select form-select-sm mt-1">
                         <option value="">Semua Tujuan</option>
                     </select>
                 </div>
@@ -53,7 +53,7 @@
         <div id="dataContainer" class="row g-2">
             <div class="text-center mt-5 text-muted">
                 <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                <div class="mt-2" style="font-size: 12px;">Menghubungkan ke database...</div>
+                <div class="mt-2" style="font-size: 12px;">Memuat data picking...</div>
             </div>
         </div>
     </div>
